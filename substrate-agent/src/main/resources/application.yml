@@ -1,0 +1,25 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: substrate-agent
+  threads:
+    virtual:
+      enabled: true # LLM 长耗时调用不占用平台线程
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:sk-placeholder}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      chat:
+        options:
+          model: ${AI_MODEL:gpt-4o-mini}
+
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
+  producer:
+    group: tlc-agent-decision-producer
+
+tlc:
+  agent:
+    danmaku-window-seconds: 60 # 情绪聚合窗口

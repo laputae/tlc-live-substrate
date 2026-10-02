@@ -1,0 +1,27 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: substrate-seckill
+  threads:
+    virtual:
+      enabled: true # MQ 消费者与批量落库任务全部运行在虚拟线程上
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/tlc_live?useSSL=false&serverTimezone=UTC
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root}
+
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
+  producer:
+    group: tlc-seckill-producer
+
+tlc:
+  seckill:
+    lua-location: lua/seckill_deduct.lua
+    persist-batch-size: 500 # 批量落库，保证 MySQL 最终一致

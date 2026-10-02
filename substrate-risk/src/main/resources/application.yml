@@ -1,0 +1,17 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: substrate-risk
+  threads:
+    virtual:
+      enabled: true # 风控校验全链路 I/O 并发由虚拟线程承载
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+tlc:
+  risk:
+    timeout-ms: 50 # 端到端风控判定必须在该窗口内完成

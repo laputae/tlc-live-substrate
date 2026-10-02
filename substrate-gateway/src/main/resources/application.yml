@@ -1,0 +1,17 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: substrate-gateway
+  threads:
+    virtual:
+      enabled: true # 全局开启虚拟线程，接管所有 HTTP/WebSocket 请求与并发 I/O
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+tlc:
+  gateway:
+    ws-path: /ws/live
