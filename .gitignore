@@ -3,3 +3,5 @@ target/
 .idea/
 *.iml
 *.log
+eff
+deploy/jars/

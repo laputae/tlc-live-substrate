@@ -28,7 +28,7 @@ public final class UserContext {
      */
     public static <T> T runWith(String token, Long roomId, ScopedValue.CallableOp<T, Exception> task) throws Exception {
         return ScopedValue.where(USER_TOKEN, token)
-                .where(ROOM_ID, roomId == null ? 0L : roomId)
+                .where(ROOM_ID, java.util.Objects.requireNonNullElse(roomId, 0L))
                 .call(task);
     }
 }

@@ -31,6 +31,10 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- StructuredTaskScope 是 JDK 25 预览 API，运行期必须开启预览开关 -->
+                    <jvmArguments>--enable-preview</jvmArguments>
+                </configuration>
             </plugin>
         </plugins>
     </build>

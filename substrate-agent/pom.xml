@@ -38,6 +38,12 @@
             <groupId>org.crac</groupId>
             <artifactId>crac</artifactId>
         </dependency>
+
+        <!-- 决策事件投递：tlc-agent-decision -->
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-spring-boot-starter</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

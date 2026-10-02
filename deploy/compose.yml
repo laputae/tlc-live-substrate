@@ -1,0 +1,156 @@
+name: tlc-live
+
+networks:
+  tlc-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: tlc-redis
+    ports: ["6379:6379"]
+    networks: [tlc-net]
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.4.1
+    container_name: tlc-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: tlc123456
+      MYSQL_DATABASE: tlc_live
+    volumes:
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+      - mysql-data:/var/lib/mysql
+    ports: ["3306:3306"]
+    networks: [tlc-net]
+    restart: unless-stopped
+
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.2.0
+    container_name: tlc-namesrv
+    command: sh mqnamesrv
+    environment:
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m"
+    ports: ["9876:9876"]
+    networks: [tlc-net]
+    restart: unless-stopped
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.2.0
+    container_name: tlc-broker
+    depends_on: [rocketmq-namesrv]
+    command: sh mqbroker -n rocketmq-namesrv:9876 -c /conf/broker.conf
+    environment:
+      JAVA_OPT_EXT: "-Xms1g -Xmx1g -Xmn512m"
+    volumes:
+      - ./broker.conf:/conf/broker.conf:ro
+    networks: [tlc-net]
+    restart: unless-stopped
+
+  gateway:
+    image: eclipse-temurin:25-jre
+    container_name: tlc-gateway
+    command: java -Xmx512m -jar /app/app.jar
+    environment:
+      REDIS_HOST: redis
+      ROCKETMQ_NAME_SERVER: rocketmq-namesrv:9876
+      RISK_BASE_URL: http://risk:8082
+    volumes: ["./jars/gateway.jar:/app/app.jar:ro"]
+    ports: ["8081:8081"]
+    depends_on: [redis, rocketmq-broker, risk]
+    networks: [tlc-net]
+    restart: unless-stopped
+
+  risk:
+    image: eclipse-temurin:25-jre
+    container_name: tlc-risk
+    # 结构化并发是预览 API：运行期必须 --enable-preview
+    command: java --enable-preview -Xmx512m -jar /app/app.jar
+    environment:
+      REDIS_HOST: redis
+    volumes: ["./jars/risk.jar:/app/app.jar:ro"]
+    ports: ["8082:8082"]
+    depends_on: [redis]
+    networks: [tlc-net]
+    restart: unless-stopped
+
+  agent:
+    image: eclipse-temurin:25-jre
+    container_name: tlc-agent
+    command: java -Xmx768m -jar /app/app.jar
+    environment:
+      REDIS_HOST: redis
+      ROCKETMQ_NAME_SERVER: rocketmq-namesrv:9876
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-placeholder}
+      AUDIT_BASE_URL: http://audit:8086
+    volumes: ["./jars/agent.jar:/app/app.jar:ro"]
+    ports: ["8083:8083"]
+    depends_on: [rocketmq-broker]
+    networks: [tlc-net]
+    restart: unless-stopped
+
+  seckill:
+    image: eclipse-temurin:25-jre
+    container_name: tlc-seckill
+    command: java -Xmx768m -jar /app/app.jar
+    environment:
+      REDIS_HOST: redis
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: tlc123456
+      ROCKETMQ_NAME_SERVER: rocketmq-namesrv:9876
+    volumes: ["./jars/seckill.jar:/app/app.jar:ro"]
+    ports: ["8084:8084"]
+    depends_on: [redis, mysql, rocketmq-broker]
+    networks: [tlc-net]
+    restart: unless-stopped
+
+  push:
+    image: eclipse-temurin:25-jre
+    container_name: tlc-push
+    command: java -Xmx512m -jar /app/app.jar
+    environment:
+      REDIS_HOST: redis
+    volumes: ["./jars/push.jar:/app/app.jar:ro"]
+    ports: ["8085:8085"]
+    depends_on: [redis]
+    networks: [tlc-net]
+    restart: unless-stopped
+
+  audit:
+    image: eclipse-temurin:25-jre
+    container_name: tlc-audit
+    command: java -Xmx512m -jar /app/app.jar
+    environment:
+      AUDIT_ES_ENABLED: "false"   # 无 ES 环境：审计降级为容器本地日志
+    volumes: ["./jars/audit.jar:/app/app.jar:ro"]
+    ports: ["8086:8086"]
+    networks: [tlc-net]
+    restart: unless-stopped
+
+  toggle:
+    image: eclipse-temurin:25-jre
+    container_name: tlc-toggle
+    command: java -Xmx384m -jar /app/app.jar
+    volumes: ["./jars/toggle.jar:/app/app.jar:ro"]
+    ports: ["8087:8087"]
+    networks: [tlc-net]
+    restart: unless-stopped
+
+  archiver:
+    image: eclipse-temurin:25-jre
+    container_name: tlc-archiver
+    command: java -Xmx384m -jar /app/app.jar
+    environment:
+      ARCHIVE_ENABLED: "false"    # ClickHouse 未部署，保持关闭
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: tlc123456
+    volumes: ["./jars/archiver.jar:/app/app.jar:ro"]
+    ports: ["8088:8088"]
+    depends_on: [mysql]
+    networks: [tlc-net]
+    restart: unless-stopped

@@ -22,4 +22,9 @@ rocketmq:
 
 tlc:
   agent:
-    danmaku-window-seconds: 60 # 情绪聚合窗口
+    scan-interval-ms: 15000       # 情绪扫描周期
+    min-samples: 5                # 触发分析的最少弹幕数
+    budget-max-total-fen: 10000   # 单次红包雨预算上限（分），LLM 输出会被裁剪
+    budget-max-count: 200         # 单次红包雨数量上限
+    cold-threshold: 35            # 热度分低于该值视为冷场
+    audit-base-url: ${AUDIT_BASE_URL:http://localhost:8086}

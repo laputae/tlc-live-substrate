@@ -1,0 +1,22 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: substrate-toggle
+  threads:
+    virtual:
+      enabled: true
+
+tlc:
+  toggle:
+    # 非核心链路默认开，出问题由一键保命统一切断
+    defaults:
+      ai-sentiment: true     # AI 情绪聚合与分析
+      fancy-danmaku: true    # 花哨弹幕特效
+      redpacket-rain: true   # AI 自主红包雨
+      danmaku-ingest: true   # 弹幕上行采集
+    # 核心链路：保命模式下绝不切断
+    core-keys:
+      - risk-core
+      - seckill-core

@@ -1,0 +1,25 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: substrate-archiver
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/tlc_live?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root}
+
+tlc:
+  archive:
+    enabled: ${ARCHIVE_ENABLED:false}
+    cron: "0 0 3 * * ?"
+    batch-size: 5000
+    source-url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/tlc_live?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    source-user: ${MYSQL_USER:root}
+    source-password: ${MYSQL_PASSWORD:root}
+    target-url: jdbc:clickhouse://${CH_HOST:localhost}:${CH_PORT:8123}/tlc_dw
+    target-user: ${CH_USER:default}
+    target-password: ${CH_PASSWORD:}

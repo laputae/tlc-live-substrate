@@ -20,6 +20,12 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- MQ 消息与业务 JSON 序列化（Boot 4 默认装配的是 Jackson 3） -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
         <!-- Redis Lua 脚本执行器（秒杀原子扣减 / 风控计数共用） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

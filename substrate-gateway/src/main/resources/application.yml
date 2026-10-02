@@ -12,6 +12,14 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
+  producer:
+    group: tlc-gateway-producer
+
 tlc:
   gateway:
-    ws-path: /ws/live
+    ws-path: /ws/upstream            # 上行长连接（弹幕/抢红包上行）
+    risk-base-url: ${RISK_BASE_URL:http://localhost:8082}
+    rush-topic: tlc-seckill-rush     # 风控放行后投递
+    danmaku-topic: tlc-agent-danmaku # 弹幕投递给 AI 中枢

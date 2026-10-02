@@ -1,0 +1,18 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: substrate-push
+  threads:
+    virtual:
+      enabled: true # 海量长连接与广播写均运行在虚拟线程上
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+tlc:
+  push:
+    ws-path: /ws/live
+    channel: tlc:downstream:push # 与网关/秒杀服务约定的下行发布渠道

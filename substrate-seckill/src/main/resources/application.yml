@@ -6,13 +6,13 @@ spring:
     name: substrate-seckill
   threads:
     virtual:
-      enabled: true # MQ 消费者与批量落库任务全部运行在虚拟线程上
+      enabled: true # MQ 消费与批量落库任务全部运行在虚拟线程上
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
   datasource:
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/tlc_live?useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/tlc_live?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: ${MYSQL_USER:root}
     password: ${MYSQL_PASSWORD:root}
 
@@ -25,3 +25,4 @@ tlc:
   seckill:
     lua-location: lua/seckill_deduct.lua
     persist-batch-size: 500 # 批量落库，保证 MySQL 最终一致
+    persist-interval-ms: 1000

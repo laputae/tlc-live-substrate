@@ -1,0 +1,19 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: substrate-audit
+  threads:
+    virtual:
+      enabled: true
+  elasticsearch:
+    uris: ${ES_URIS:http://localhost:9200}
+  data:
+    elasticsearch:
+      auto-index-creation: true # 首次启动自动建 agent-audit 索引
+
+tlc:
+  audit:
+    elasticsearch-enabled: ${AUDIT_ES_ENABLED:true} # ES 不可用时置为 false，审计降级到本地日志
+    flush-batch-size: 200

@@ -19,6 +19,10 @@
         <module>substrate-risk</module>
         <module>substrate-agent</module>
         <module>substrate-seckill</module>
+        <module>substrate-push</module>
+        <module>substrate-audit</module>
+        <module>substrate-toggle</module>
+        <module>substrate-archiver</module>
     </modules>
 
     <properties>
@@ -29,7 +33,7 @@
         <!-- [FIX]: 私服暂缺 2026.0.0 GA，暂时降级到 M1 (Milestone 1)。待 GA 版同步至私服后，再将其改回 2026.0.0 -->
         <spring-cloud.version>2026.0.0-M1</spring-cloud.version>
 
-        <spring-ai.version>1.1.0</spring-ai.version>
+        <spring-ai.version>2.0.1</spring-ai.version>
 
         <maven.compiler.parameters>true</maven.compiler.parameters>
         <!-- 开启 Java 25 预览特性以支持未来可能开启的 Valhalla 等孵化特性 -->
@@ -166,7 +170,11 @@
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                     <parameters>${maven.compiler.parameters}</parameters>
-                    <compilerArgs>--enable-preview</compilerArgs>
+                    <showWarnings>true</showWarnings>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-processing,-serial</arg>
+                        <arg>--enable-preview</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
 
@@ -177,6 +185,19 @@
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
                     <argLine>--enable-preview</argLine>
+                </configuration>
+            </plugin>
+
+            <!-- 静态检查：mvn spotbugs:check（排除清单见根目录 spotbugs-exclude.xml，
+                 多模块运行时经 -Dspotbugs.excludeFilterFile=<绝对路径> 传入） -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>4.9.6.0</version>
+                <configuration>
+                    <excludeFilterFile>${project.basedir}/../spotbugs-exclude.xml</excludeFilterFile>
+                    <threshold>Medium</threshold>
+                    <effort>Max</effort>
                 </configuration>
             </plugin>
         </plugins>
