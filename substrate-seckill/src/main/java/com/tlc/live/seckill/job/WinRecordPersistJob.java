@@ -2,6 +2,7 @@ package com.tlc.live.seckill.job;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tlc.live.common.util.LuaScriptLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,10 +15,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 中奖记录批量落库：Redis 队列 → MySQL，实现最终一致。
+ * 中奖记录批量落库：Redis 队列 -> MySQL，实现最终一致。
  *
- * <p>抢中瞬间只写 Redis（极速），落库由后台调度低峰异步批量完成。
- * MySQL 表 DDL（幂等依赖唯一键）：
+ * <p>批量弹出用单条 Lua（LRANGE+LTRIM 原子）完成，每批仅 1 次 Redis 往返；
+ * JDBC 用 INSERT IGNORE + 唯一键保证幂等。表 DDL：
  * CREATE TABLE t_redpacket_record (
  *   id BIGINT AUTO_INCREMENT PRIMARY KEY,
  *   room_id VARCHAR(64) NOT NULL,
@@ -36,6 +37,7 @@ public class WinRecordPersistJob {
     private static final Logger log = LoggerFactory.getLogger(WinRecordPersistJob.class);
 
     private static final String PERSIST_QUEUE = "rp:persist:queue";
+    private static final String POP_LUA = "lua/persist_pop.lua";
     private static final String INSERT_SQL =
             "INSERT IGNORE INTO t_redpacket_record (room_id, user_id, red_packet_id, amount_fen, status) "
                     + "VALUES (?, ?, ?, ?, 'WIN')";
@@ -43,14 +45,16 @@ public class WinRecordPersistJob {
     private final StringRedisTemplate redis;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private final LuaScriptLoader luaLoader;
     private final int batchSize;
 
     public WinRecordPersistJob(StringRedisTemplate redis, JdbcTemplate jdbcTemplate,
-                               ObjectMapper objectMapper,
+                               ObjectMapper objectMapper, LuaScriptLoader luaLoader,
                                @Value("${tlc.seckill.persist-batch-size:500}") int batchSize) {
         this.redis = redis;
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
+        this.luaLoader = luaLoader;
         this.batchSize = batchSize;
     }
 
@@ -58,11 +62,13 @@ public class WinRecordPersistJob {
     public void persist() {
         List<JsonNode> batch = new ArrayList<>(batchSize);
         while (batch.size() < batchSize) {
-            String raw = redis.opsForList().rightPop(PERSIST_QUEUE);
-            if (raw == null) {
+            List<String> chunk = luaLoader.executeForList(POP_LUA, List.of(PERSIST_QUEUE), String.valueOf(batchSize - batch.size()));
+            if (chunk.isEmpty()) {
                 break;
             }
-            batch.add(parse(raw));
+            for (String raw : chunk) {
+                batch.add(parse(raw));
+            }
         }
         if (batch.isEmpty()) {
             return;
@@ -83,9 +89,9 @@ public class WinRecordPersistJob {
         }
     }
 
-    private JsonNode parse(Object raw) {
+    private JsonNode parse(String raw) {
         try {
-            return objectMapper.readTree(raw.toString());
+            return objectMapper.readTree(raw);
         } catch (Exception ex) {
             throw new IllegalStateException("坏数据: " + raw, ex);
         }

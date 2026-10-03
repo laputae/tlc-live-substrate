@@ -3,6 +3,8 @@ package com.tlc.live.common.util;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.core.io.ClassPathResource;
@@ -22,6 +24,7 @@ public class LuaScriptLoader {
 
     private final StringRedisTemplate redisTemplate;
     private final Map<String, DefaultRedisScript<Long>> scriptCache = new ConcurrentHashMap<>();
+    private final Map<String, DefaultRedisScript<List>> listScriptCache = new ConcurrentHashMap<>();
 
     public LuaScriptLoader(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
@@ -39,6 +42,23 @@ public class LuaScriptLoader {
         DefaultRedisScript<Long> script = scriptCache.computeIfAbsent(location, this::load);
         Long result = redisTemplate.execute(script, keys, args);
         return result == null ? -1L : result;
+    }
+
+    /**
+     * 执行返回多行结果的 Lua 脚本（如批量弹出列表）。
+     *
+     * @return 结果列表（无结果时为空列表）
+     */
+    @SuppressWarnings("unchecked")
+    public List<String> executeForList(String location, List<String> keys, Object... args) {
+        DefaultRedisScript<List> script = (DefaultRedisScript<List>) listScriptCache.computeIfAbsent(location, k -> {
+            DefaultRedisScript<List> s = new DefaultRedisScript<>();
+            s.setResultType(List.class);
+            s.setScriptText(read(k));
+            return s;
+        });
+        List result = redisTemplate.execute(script, keys, args);
+        return result == null ? List.of() : result;
     }
 
     private DefaultRedisScript<Long> load(String location) {

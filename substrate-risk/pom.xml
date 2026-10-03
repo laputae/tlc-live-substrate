@@ -24,6 +24,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+
+        <!-- 黑名单/信誉分本地缓存：低频变更热点数据，命中后 0 次 Redis 访问 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -32,7 +38,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <!-- StructuredTaskScope 是 JDK 25 预览 API，运行期必须开启预览开关 -->
+                    <!-- 结构化并发是预览 API：运行期必须开启预览开关（enable&#45;preview） -->
                     <jvmArguments>--enable-preview</jvmArguments>
                 </configuration>
             </plugin>

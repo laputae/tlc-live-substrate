@@ -1,19 +1,25 @@
--- 红包雨原子扣减（一个脚本内完成：幂等校验 + 凭证弹出 + 中奖记录，天然无并发超卖）
+-- 红包雨原子扣减（单脚本完成：幂等 + 凭证弹出 + 中奖记录 + 已参与标记 + 持久化入队）
+-- Java 侧仅在抢中后做一次 PUBLISH 广播，扣减路径总共 2 次 Redis 往返
 --
--- KEYS[1]: 红包库存凭证队列 rp:stock:{redPacketId}   （value 形如 "ticketId:amountFen"）
--- KEYS[2]: 中奖名单哈希   rp:winners:{redPacketId}   （field=userId, value=amountFen）
--- KEYS[3]: 幂等去重集合   rp:dedup:{redPacketId}
--- ARGV[1]: userId
+-- KEYS[1] 库存凭证队列 rp:stock:{id}     (value: "redPacketId:seq:amountFen")
+-- KEYS[2] 中奖名单哈希   rp:winners:{id}  (field=userId, value=amountFen)
+-- KEYS[3] 幂等去重集合   rp:dedup:{id}
+-- KEYS[4] 已参与标记     rp:rushed:{id}   (供风控预过滤)
+-- KEYS[5] 持久化队列     rp:persist:queue
+-- ARGV[1] userId
+-- ARGV[2] roomId
+-- ARGV[3] redPacketId
 --
--- 返回: >0 抢中（返回值为本次到账金额，单位分）
---        1 已抢过（幂等拒绝）
---        2 已抢完
---       -1 脚本执行异常
+-- 返回: >0 抢中（金额，分）  1 已抢过  2 已抢完  -1 异常
 
 local stockKey = KEYS[1]
 local winnersKey = KEYS[2]
 local dedupKey = KEYS[3]
+local rushedKey = KEYS[4]
+local persistQueue = KEYS[5]
 local userId = ARGV[1]
+local roomId = ARGV[2]
+local redPacketId = ARGV[3]
 
 -- 1. 幂等校验：一人一包
 if redis.call('SISMEMBER', dedupKey, userId) == 1 then
@@ -31,9 +37,12 @@ if not ticketId or not seq or not amountFen then
     return -1
 end
 
--- 3. 记录中奖名单与去重标记（同脚本内原子完成）
+-- 3. 中奖记录 + 去重 + 已参与标记 + 持久化入队（全部在本脚本内原子完成）
 redis.call('SADD', dedupKey, userId)
 redis.call('HSET', winnersKey, userId, amountFen)
 redis.call('SET', 'rp:ticket:' .. ticketId .. ':' .. seq, userId)
+redis.call('SADD', rushedKey, userId)
+redis.call('LPUSH', persistQueue,
+    '{"redPacketId":' .. redPacketId .. ',"roomId":"' .. roomId .. '","userId":' .. userId .. ',"amountFen":' .. amountFen .. '}')
 
 return tonumber(amountFen)

@@ -61,7 +61,7 @@ services:
     restart: unless-stopped
 
   es:
-    image: elasticsearch:8.14.3
+    image: elasticsearch:9.1.0
     container_name: tlc-es
     environment:
       discovery.type: single-node
@@ -70,6 +70,7 @@ services:
     ports: ["9200:9200"]
     networks: [tlc-net]
     restart: unless-stopped
+
   gateway:
     image: eclipse-temurin:25-jre
     container_name: tlc-gateway
@@ -88,10 +89,10 @@ services:
   risk:
     image: eclipse-temurin:25-jre
     container_name: tlc-risk
-    # 结构化并发是预览 API：运行期必须 --enable-preview
     command: java --enable-preview -Xmx512m -jar /app/app.jar
     environment:
       REDIS_HOST: redis
+      RISK_TIMEOUT_MS: "200"
     volumes: ["./jars/risk.jar:/app/app.jar:ro"]
     ports: ["8082:8082"]
     depends_on: [redis]
@@ -150,6 +151,7 @@ services:
       SPRING_ELASTICSEARCH_URIS: http://es:9200
     volumes: ["./jars/audit.jar:/app/app.jar:ro"]
     ports: ["8086:8086"]
+    depends_on: [es]
     networks: [tlc-net]
     restart: unless-stopped
 
@@ -169,7 +171,7 @@ services:
     container_name: tlc-archiver
     command: java -Xmx384m -jar /app/app.jar
     environment:
-      ARCHIVE_ENABLED: "false"    # ClickHouse 未部署，保持关闭
+      ARCHIVE_ENABLED: "false"
       MYSQL_HOST: mysql
       MYSQL_USER: root
       MYSQL_PASSWORD: tlc123456

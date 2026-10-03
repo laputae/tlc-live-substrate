@@ -1,44 +1,32 @@
 package com.tlc.live.risk.check;
 
-import com.tlc.live.risk.config.RiskProperties;
 import com.tlc.live.common.exception.RiskRejectException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import com.tlc.live.risk.config.RiskProperties;
+import com.tlc.live.risk.precheck.RiskPrecheckService;
 import org.springframework.stereotype.Service;
 
 /**
- * 校验一：设备指纹黑名单（模拟外部黑产库 I/O）。
+ * 校验一：设备指纹黑名单（生产环境为外部黑产库 I/O）。
  *
- * <p>外部源不可用时选择 fail-open（放行并告警）：秒杀是低资损场景，
- * 可用性优先于风控完备性；资损敏感场景应改为 fail-close。
+ * <p>画像由 {@link RiskPrecheckService} 本地缓存（黑名单 TTL 30s），
+ * 命中后 0 次 Redis 访问。命中黑名单抛出 RiskRejectException：
+ * 在结构化并发作用域内将立即取消其余校验的 I/O 等待。
+ * 新拉黑用户最多延迟 30s 生效（与 fail-open 策略一致的可用性取舍）。
  */
 @Service
 public class BlacklistCheckService {
 
-    private static final Logger log = LoggerFactory.getLogger(BlacklistCheckService.class);
-
-    public static final String BLACKLIST_KEY = "risk:blacklist";
-
-    private final StringRedisTemplate redis;
+    private final RiskPrecheckService precheck;
     private final RiskProperties props;
 
-    public BlacklistCheckService(StringRedisTemplate redis, RiskProperties props) {
-        this.redis = redis;
+    public BlacklistCheckService(RiskPrecheckService precheck, RiskProperties props) {
+        this.precheck = precheck;
         this.props = props;
     }
 
-    /** 命中黑名单直接抛出 RiskRejectException：在结构化并发作用域内将立即取消其余校验的 I/O 等待。 */
     public void check(long userId) {
         simulateRemoteIo();
-        Boolean hit;
-        try {
-            hit = redis.opsForSet().isMember(BLACKLIST_KEY, String.valueOf(userId));
-        } catch (Exception ex) {
-            log.warn("黑名单源不可用，降级放行 userId={}: {}", userId, ex.getMessage());
-            return;
-        }
-        if (Boolean.TRUE.equals(hit)) {
+        if (precheck.isBlacklisted(userId)) {
             throw new RiskRejectException(userId, "设备指纹命中黑名单");
         }
     }
