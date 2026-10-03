@@ -84,7 +84,7 @@ services:
     environment:
       REDIS_HOST: redis
       ROCKETMQ_NAME_SERVER: rocketmq-namesrv:9876
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-placeholder}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-sk-placeholder}
       AUDIT_BASE_URL: http://audit:8086
     volumes: ["./jars/agent.jar:/app/app.jar:ro"]
     ports: ["8083:8083"]

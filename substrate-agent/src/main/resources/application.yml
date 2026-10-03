@@ -7,13 +7,14 @@ spring:
   threads:
     virtual:
       enabled: true # LLM 长耗时调用不占用平台线程
+  # DeepSeek 兼容 OpenAI 协议：base-url 指向 deepseek，模型用 deepseek-chat
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY:sk-placeholder}
-      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      api-key: ${DEEPSEEK_API_KEY:sk-placeholder}
+      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
       chat:
         options:
-          model: ${AI_MODEL:gpt-4o-mini}
+          model: ${AI_MODEL:deepseek-chat}
 
 rocketmq:
   name-server: ${ROCKETMQ_NAME_SERVER:localhost:9876}
