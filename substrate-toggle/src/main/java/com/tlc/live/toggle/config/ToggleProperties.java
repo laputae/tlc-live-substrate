@@ -17,6 +17,9 @@ public class ToggleProperties {
     /** 核心链路开关：保命模式下必须保留，绝不允许被切断。 */
     private List<String> coreKeys = List.of("risk-core", "seckill-core");
 
+    /** Nacos 同步开关（push 模式）。 */
+    private boolean nacosEnabled = true;
+
     public Map<String, Boolean> getDefaults() {
         return Map.copyOf(defaults);
     }
@@ -31,5 +34,13 @@ public class ToggleProperties {
 
     public void setCoreKeys(List<String> coreKeys) {
         this.coreKeys = coreKeys == null ? List.of() : List.copyOf(coreKeys);
+    }
+
+    public boolean isNacosEnabled() {
+        return nacosEnabled;
+    }
+
+    public void setNacosEnabled(boolean nacosEnabled) {
+        this.nacosEnabled = nacosEnabled;
     }
 }

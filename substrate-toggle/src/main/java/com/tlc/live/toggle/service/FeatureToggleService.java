@@ -1,6 +1,8 @@
 package com.tlc.live.toggle.service;
 
 import com.tlc.live.toggle.config.ToggleProperties;
+import com.tlc.live.toggle.event.TogglesChangedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
@@ -10,22 +12,23 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 内存热开关中枢。
  *
- * <p>直播人数从 10 万暴涨到 100 万（明星空降）时，需要一键切断 AI 情绪分析、
- * 花哨弹幕等非核心链路，全力保红包与带货。读取方（网关/AI 中枢）通过 REST
- * 轮询本服务（推拉模型中的"拉"），进程内以 ConcurrentHashMap 保存热状态，
- * 读取路径无锁、无网络。接入 Nacos 后仅需替换配置来源，接口不变。
+ * <p>变更后发布 TogglesChangedEvent：Nacos 同步组件监听该事件，
+ * 把快照推送（publish）到配置中心；网关等读取方通过 Nacos 长轮询
+ * 近实时感知——这就是推拉模型中的"推"。
  */
 @Service
 public class FeatureToggleService {
 
-    /** 一键保命开关：开启后所有非核心链路立即降级。 */
+    /** 一键保命开关：开启后所有非核心开关立即降级。 */
     public static final String KILL_SWITCH = "core-only";
 
     private final ToggleProperties properties;
     private final Map<String, Boolean> toggles = new ConcurrentHashMap<>();
+    private final ApplicationEventPublisher publisher;
 
-    public FeatureToggleService(ToggleProperties properties) {
+    public FeatureToggleService(ToggleProperties properties, ApplicationEventPublisher publisher) {
         this.properties = properties;
+        this.publisher = publisher;
         this.toggles.putAll(properties.getDefaults());
     }
 
@@ -40,9 +43,14 @@ public class FeatureToggleService {
 
     public void set(String key, boolean enabled) {
         toggles.put(key, enabled);
+        publisher.publishEvent(new TogglesChangedEvent(snapshot()));
     }
 
-    /** 当前全量快照（供网关定时拉取刷新本地 volatile 缓存）。 */
+    public void applySnapshot(Map<String, Boolean> snapshot) {
+        toggles.putAll(snapshot);
+    }
+
+    /** 当前全量快照。 */
     public Map<String, Boolean> snapshot() {
         Map<String, Boolean> view = new LinkedHashMap<>(properties.getDefaults());
         view.putAll(toggles);
@@ -62,5 +70,6 @@ public class FeatureToggleService {
             properties.getDefaults().forEach(toggles::put);
         }
         toggles.put(KILL_SWITCH, on);
+        publisher.publishEvent(new TogglesChangedEvent(snapshot()));
     }
 }

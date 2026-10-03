@@ -9,7 +9,12 @@ spring:
       enabled: true
 
 tlc:
+  nacos-addr: ${NACOS_ADDR:http://nacos:8848}
+  nacos:
+    data-id: tlc-toggle-snapshot.json
+    group: TLC_GROUP
   toggle:
+    nacos-enabled: ${TOGGLE_NACOS_ENABLED:true}
     # 非核心链路默认开，出问题由一键保命统一切断
     defaults:
       ai-sentiment: true     # AI 情绪聚合与分析

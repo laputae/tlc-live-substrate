@@ -50,6 +50,26 @@ services:
     networks: [tlc-net]
     restart: unless-stopped
 
+  nacos:
+    image: nacos/nacos-server:v2.5.1
+    container_name: tlc-nacos
+    environment:
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "false"
+    ports: ["8848:8848", "9848:9848"]
+    networks: [tlc-net]
+    restart: unless-stopped
+
+  es:
+    image: elasticsearch:8.14.3
+    container_name: tlc-es
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+    ports: ["9200:9200"]
+    networks: [tlc-net]
+    restart: unless-stopped
   gateway:
     image: eclipse-temurin:25-jre
     container_name: tlc-gateway
@@ -58,6 +78,7 @@ services:
       REDIS_HOST: redis
       ROCKETMQ_NAME_SERVER: rocketmq-namesrv:9876
       RISK_BASE_URL: http://risk:8082
+      NACOS_ADDR: http://nacos:8848
     volumes: ["./jars/gateway.jar:/app/app.jar:ro"]
     ports: ["8081:8081"]
     depends_on: [redis, rocketmq-broker, risk]
@@ -125,7 +146,8 @@ services:
     container_name: tlc-audit
     command: java -Xmx512m -jar /app/app.jar
     environment:
-      AUDIT_ES_ENABLED: "false"   # 无 ES 环境：审计降级为容器本地日志
+      AUDIT_ES_ENABLED: "true"
+      SPRING_ELASTICSEARCH_URIS: http://es:9200
     volumes: ["./jars/audit.jar:/app/app.jar:ro"]
     ports: ["8086:8086"]
     networks: [tlc-net]
@@ -135,6 +157,8 @@ services:
     image: eclipse-temurin:25-jre
     container_name: tlc-toggle
     command: java -Xmx384m -jar /app/app.jar
+    environment:
+      NACOS_ADDR: http://nacos:8848
     volumes: ["./jars/toggle.jar:/app/app.jar:ro"]
     ports: ["8087:8087"]
     networks: [tlc-net]
