@@ -14,6 +14,6 @@ spring:
 
 tlc:
   risk:
-    timeout-ms: 50 # 端到端风控判定必须在该窗口内完成
+    timeout-ms: ${RISK_TIMEOUT_MS:50} # 端到端风控判定窗口，burst 场景可经环境变量放大
     simulate-latency-ms: 0 # 本地演示并发短路时可设为 30，模拟外部指纹库/信誉分 I/O
     credit-reject-below: 60

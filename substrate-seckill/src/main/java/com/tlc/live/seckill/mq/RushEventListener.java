@@ -19,7 +19,8 @@ import org.springframework.stereotype.Component;
 @RocketMQMessageListener(
         topic = "tlc-seckill-rush",
         consumerGroup = "tlc-seckill-deduct-consumer",
-        consumeMode = ConsumeMode.CONCURRENTLY)
+        consumeMode = ConsumeMode.CONCURRENTLY,
+        consumeThreadMax = 200)
 public class RushEventListener implements RocketMQListener<String> {
 
     private static final Logger log = LoggerFactory.getLogger(RushEventListener.class);
