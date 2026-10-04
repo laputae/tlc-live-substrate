@@ -1,5 +1,5 @@
 # tlc-live-substrate
-
+直播场控与百万级并发博弈基座
 **AI-Native 直播场控与百万级并发博弈基座** —— 解决大模型（LLM）长耗时推理与直播间极高频互动（秒杀/红包雨）之间的架构矛盾。
 
 > Java 25 (LTS) · Spring Boot 4.1 · Spring AI 2.0（DeepSeek） · Redis · RocketMQ 5 · MySQL 8.4 · Elasticsearch 9 · Nacos 2.5
